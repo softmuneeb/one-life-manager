@@ -2,8 +2,8 @@ services:
   - type: web
     name: cute99-virtual-assistant
     runtime: node
-    buildCommand: npm run build
-    startCommand: npm start
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/index.js
     plan: free
     healthCheckPath: /health
     envVars:
