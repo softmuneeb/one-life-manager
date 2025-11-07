@@ -176,7 +176,66 @@ export class SchedulerService {
   private formatReminderMessage(entry: TimetableEntry): string {
     const customMessage = this.reminderConfig.message;
     if (customMessage) {
-      return customMessage.replace('{activity}', entry.activity).replace('{time}', entry.timeSlot);
+      // Parse the activity to extract subject, type, and location
+      const activity = entry.activity;
+      const startTime = moment(entry.startTime).format('h:mm A');
+      
+      // Extract subject (main activity)
+      let subject = activity;
+      let type = 'Activity';
+      let location = 'Scheduled Location';
+      
+      // Try to extract type and location from activity description
+      if (activity.includes(':')) {
+        const parts = activity.split(':');
+        subject = parts[0]?.trim() || activity;
+        if (parts[1]) {
+          const description = parts[1].trim();
+          if (description.toLowerCase().includes('gym')) {
+            location = 'GYM';
+          } else if (description.toLowerCase().includes('home')) {
+            location = 'Home';
+          } else if (description.toLowerCase().includes('office')) {
+            location = 'Office';
+          }
+        }
+      }
+      
+      // Determine type based on keywords
+      const activityLower = activity.toLowerCase();
+      if (activityLower.includes('prayer')) {
+        type = 'Prayer';
+        location = 'Home';
+      } else if (activityLower.includes('gym')) {
+        type = 'Exercise';
+        location = 'GYM';
+      } else if (activityLower.includes('work') || activityLower.includes('office')) {
+        type = 'Work';
+        location = 'Office';
+      } else if (activityLower.includes('read') || activityLower.includes('quran')) {
+        type = 'Study';
+        location = 'Home';
+      } else if (activityLower.includes('walk')) {
+        type = 'Exercise';
+        location = 'Outdoor';
+      } else if (activityLower.includes('family')) {
+        type = 'Personal';
+        location = 'Home';
+      } else if (activityLower.includes('meet') || activityLower.includes('coffee')) {
+        type = 'Social';
+        location = 'Meeting Place';
+      } else if (activityLower.includes('rest') || activityLower.includes('sleep')) {
+        type = 'Rest';
+        location = 'Home';
+      }
+
+      return customMessage
+        .replace(/{subject}/g, subject)
+        .replace(/{type}/g, type)
+        .replace(/{location}/g, location)
+        .replace(/{minutesBefore}/g, this.reminderConfig.minutesBefore.toString())
+        .replace(/{time}/g, startTime)
+        .replace(/{activity}/g, activity);
     }
 
     const startTime = moment(entry.startTime).format('h:mm A');
