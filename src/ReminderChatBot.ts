@@ -3,12 +3,14 @@ import { ConfigService } from './config/ConfigService';
 import { TimetableParser } from './services/TimetableParser';
 import { WhatsAppServiceFactory, IWhatsAppService } from './services/WhatsAppService';
 import { SchedulerService } from './services/SchedulerService';
+import { KeepAliveService } from './services/KeepAliveService';
 
 export class ReminderChatBot {
   private configService: ConfigService;
   private timetableParser!: TimetableParser;
   private whatsappService!: IWhatsAppService;
   private schedulerService!: SchedulerService;
+  private keepAliveService!: KeepAliveService;
   private isRunning = false;
 
   constructor() {
@@ -33,6 +35,9 @@ export class ReminderChatBot {
       config.reminderConfig,
       this.configService.getRecipientPhone()
     );
+
+    // Initialize keep-alive service for production deployments
+    this.keepAliveService = new KeepAliveService();
   }
 
   public async start(): Promise<void> {
@@ -68,6 +73,12 @@ export class ReminderChatBot {
       // Start scheduler service
       await this.schedulerService.start();
 
+      // Start keep-alive service for production environments
+      if (process.env.NODE_ENV === 'production' || process.env.RENDER_EXTERNAL_URL) {
+        await this.keepAliveService.start();
+        console.log('🌐 Keep-alive service started (prevents sleeping on free hosting)');
+      }
+
       this.isRunning = true;
       console.log('✅ Reminder ChatBot started successfully!');
       console.log('🔄 Monitoring timetable for reminders...');
@@ -90,6 +101,9 @@ export class ReminderChatBot {
     console.log('🛑 Stopping Reminder ChatBot...');
     
     try {
+      // Stop keep-alive service
+      await this.keepAliveService.stop();
+
       // Stop scheduler service
       await this.schedulerService.stop();
 
