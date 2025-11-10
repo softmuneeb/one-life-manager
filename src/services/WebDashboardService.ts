@@ -3,6 +3,7 @@ import cors from 'cors';
 import { DailyTracking, IDailyTracking } from '../models/DailyTracking';
 import { TimetableParser } from './TimetableParser';
 import { DatabaseService } from './DatabaseService';
+import { MemoryMonitorService } from './MemoryMonitorService';
 import moment from 'moment';
 
 /**
@@ -53,6 +54,46 @@ export class WebDashboardService {
         service: 'BarakahTracker Web Dashboard',
         uptime: process.uptime()
       });
+    });
+
+    // Memory usage endpoint
+    this.app.get('/memory', async (req: Request, res: Response) => {
+      try {
+        const memoryMonitor = MemoryMonitorService.getInstance();
+        const memory = memoryMonitor.getMemoryUsage();
+        const disk = await memoryMonitor.getDiskUsage();
+        
+        res.json({
+          timestamp: new Date().toISOString(),
+          memory: {
+            heapUsedMB: memory.heap.usedMB,
+            heapTotalMB: memory.heap.totalMB,
+            heapUsagePercent: memory.heap.usagePercent,
+            rssMB: memory.system.rssMB,
+            externalMB: memory.system.externalMB,
+            renderLimitMB: 512,
+            renderUsagePercent: Math.round((memory.system.rssMB / 512) * 100)
+          },
+          disk: disk ? {
+            usedMB: disk.usedMB,
+            availableMB: disk.availableMB,
+            totalMB: disk.totalMB,
+            usagePercent: disk.usagePercent
+          } : null,
+          process: {
+            uptime: memory.process.uptime,
+            pid: memory.process.pid,
+            platform: memory.process.platform,
+            arch: memory.process.arch
+          },
+          warnings: {
+            highMemoryUsage: memory.system.rssMB > 400,
+            highDiskUsage: disk ? disk.usagePercent > 80 : false
+          }
+        });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to get memory usage', details: error });
+      }
     });
 
     // Main dashboard route - today's diary

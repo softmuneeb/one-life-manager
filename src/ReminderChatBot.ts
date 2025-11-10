@@ -7,6 +7,7 @@ import { SchedulerService } from './services/SchedulerService';
 import { KeepAliveService } from './services/KeepAliveService';
 import { WebDashboardService } from './services/WebDashboardService';
 import { DatabaseService } from './services/DatabaseService';
+import { MemoryMonitorService } from './services/MemoryMonitorService';
 
 export class ReminderChatBot {
   private configService: ConfigService;
@@ -15,6 +16,7 @@ export class ReminderChatBot {
   private schedulerService!: SchedulerService;
   private keepAliveService!: KeepAliveService;
   private webDashboardService!: WebDashboardService;
+  private memoryMonitor!: MemoryMonitorService;
   private isRunning = false;
 
   constructor() {
@@ -55,6 +57,9 @@ export class ReminderChatBot {
     // Initialize web dashboard service for health checks and monitoring
     const port = parseInt(process.env.PORT || '3001', 10);
     this.webDashboardService = new WebDashboardService(port, this.timetableParser);
+    
+    // Initialize memory monitoring service
+    this.memoryMonitor = MemoryMonitorService.getInstance();
   }
 
   /**
@@ -182,6 +187,9 @@ export class ReminderChatBot {
       // Note: KeepAlive service disabled since WebDashboard already provides /health endpoint
       console.log('ℹ️  Keep-alive functionality provided by Web Dashboard /health endpoint');
 
+      // Start memory monitoring
+      this.memoryMonitor.startMonitoring(3); // Monitor every 3 minutes
+      
       this.isRunning = true;
       console.log('✅ Reminder ChatBot started successfully!');
       console.log('🔄 Monitoring timetable for reminders...');
@@ -282,6 +290,12 @@ export class ReminderChatBot {
 
   private async handleShutdown(): Promise<void> {
     console.log('\n🔄 Graceful shutdown initiated...');
+    
+    // Stop memory monitoring
+    if (this.memoryMonitor) {
+      this.memoryMonitor.stopMonitoring();
+    }
+    
     await this.stop();
     // Don't call process.exit in tests or when called programmatically
     if (process.env.NODE_ENV !== 'test') {
