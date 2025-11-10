@@ -39,7 +39,9 @@ export class ReminderChatBot {
     );
 
     // Initialize keep-alive service for production deployments
-    this.keepAliveService = new KeepAliveService();
+    // Use a different port than the web dashboard to avoid conflicts
+    const keepAlivePort = parseInt(process.env.KEEP_ALIVE_PORT || '3000', 10);
+    this.keepAliveService = new KeepAliveService(keepAlivePort);
     
     // Initialize web dashboard service for health checks and monitoring
     const port = parseInt(process.env.PORT || '3001', 10);
@@ -92,11 +94,8 @@ export class ReminderChatBot {
       const port = parseInt(process.env.PORT || '3001', 10);
       console.log(`🌐 Web dashboard started on port ${port} (health checks and monitoring)`);
 
-      // Start keep-alive service for production environments
-      if (process.env.NODE_ENV === 'production' || process.env.RENDER_EXTERNAL_URL) {
-        await this.keepAliveService.start();
-        console.log('🌐 Keep-alive service started (prevents sleeping on free hosting)');
-      }
+      // Note: KeepAlive service disabled since WebDashboard already provides /health endpoint
+      console.log('ℹ️  Keep-alive functionality provided by Web Dashboard /health endpoint');
 
       this.isRunning = true;
       console.log('✅ Reminder ChatBot started successfully!');
@@ -244,7 +243,7 @@ export class ReminderChatBot {
       console.log('🎉 All environment variables are properly configured!');
       console.log('✅ You can start the application with: npm start');
     } else {
-      console.log(`❌ ${envValidation.missing.length} critical environment variable(s) missing`);
+      console.log(`❌ ${envValidation.missing.length} critical environment variable(s) missing: ${envValidation.missing.join(', ')}`);
       console.log('⚠️  Please fix the issues above before starting the application');
       process.exit(1);
     }
