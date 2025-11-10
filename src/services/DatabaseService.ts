@@ -38,7 +38,7 @@ export class DatabaseService {
       await mongoose.connect(mongoUrl, {
         dbName: 'BarakahTrackerDB', // Use specific database name
         maxPoolSize: 10,
-        serverSelectionTimeoutMS: 30000, // Increased from 5000 for Render
+        serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
         connectTimeoutMS: 30000, // Added for better connection handling
         bufferCommands: false,

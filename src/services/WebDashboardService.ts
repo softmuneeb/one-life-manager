@@ -568,7 +568,7 @@ export class WebDashboardService {
     }
 
     try {
-      this.server = this.app.listen(this.port, '0.0.0.0', () => {
+      this.server = this.app.listen(this.port, () => {
         console.log(`🌐 BarakahTracker Web Dashboard running on port ${this.port}`);
         console.log(`📊 Visit http://localhost:${this.port} to view today's diary`);
         console.log(`📅 Visit http://localhost:${this.port}/diary/10-Nov-2025 for specific dates`);
