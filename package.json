@@ -8,6 +8,8 @@
     "dev": "ts-node src/index.ts",
     "start": "node dist/index.js",
     "postinstall": "npm run build",
+    "start:prod": "NODE_ENV=production node --max-old-space-size=384 dist/index.js",
+    "install:prod": "npm ci --only=production --no-audit --no-fund",
     "check-env": "ts-node src/index.ts check-env",
     "demo": "ts-node demo-setup.ts",
     "demo-local": "ts-node demo-local.ts",
@@ -16,7 +18,9 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix"
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "optimize": "./optimize-memory.sh",
+    "memory-check": "node -e \"const usage = process.memoryUsage(); console.log('Memory Usage:', Math.round(usage.rss/1024/1024) + 'MB RSS,', Math.round(usage.heapUsed/1024/1024) + 'MB Heap');\""
   },
   "keywords": [
     "chatbot",
@@ -28,6 +32,7 @@
   "author": "Muneeb Zubair Khan",
   "license": "MIT",
   "devDependencies": {
+    "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/jest": "^29.5.14",
@@ -45,6 +50,7 @@
   "dependencies": {
     "@types/qrcode-terminal": "^0.12.2",
     "axios": "^1.13.2",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "csv-parse": "^5.5.2",
     "csv-parser": "^3.2.0",
@@ -55,5 +61,13 @@
     "node-cron": "^3.0.3",
     "qrcode-terminal": "^0.12.0",
     "whatsapp-web.js": "^1.23.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "config": {
+    "max_memory": "384",
+    "optimize_for_production": true
   }
 }

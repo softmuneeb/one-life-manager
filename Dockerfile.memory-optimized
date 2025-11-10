@@ -1,0 +1,70 @@
+# Multi-stage Docker build optimized for memory efficiency
+# Stage 1: Build stage with full dev dependencies
+FROM node:18-alpine AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install ALL dependencies (including dev dependencies for build)
+RUN npm ci --include=dev
+
+# Copy source code
+COPY . .
+
+# Build the TypeScript application
+RUN npm run build
+
+# Stage 2: Production stage with minimal dependencies
+FROM node:18-alpine AS production
+
+# Install dumb-init for proper signal handling and reduce memory overhead
+RUN apk add --no-cache dumb-init
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && adduser -S appuser -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install ONLY production dependencies with optimizations
+RUN npm ci --only=production --no-audit --no-fund && \
+    npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/muneeb-timetable.csv ./
+
+# Copy optimization script
+COPY optimize-memory.sh ./
+RUN chmod +x optimize-memory.sh
+
+# Run memory optimization
+RUN ./optimize-memory.sh
+
+# Change ownership to non-root user
+RUN chown -R appuser:nodejs /app
+USER appuser
+
+# Set Node.js memory limits and production optimizations
+ENV NODE_ENV=production \
+    NODE_OPTIONS="--max-old-space-size=384 --expose-gc --optimize-for-size" \
+    UV_THREADPOOL_SIZE=4 \
+    NPM_CONFIG_PRODUCTION=true \
+    USE_MONGO_AUTH=true
+
+# Expose port
+EXPOSE 3001
+
+# Health check with low resource usage
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3001/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
+
+# Use dumb-init to handle signals properly and start with garbage collection enabled
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "--expose-gc", "--max-old-space-size=384", "dist/index.js"]

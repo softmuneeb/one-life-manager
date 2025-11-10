@@ -8,6 +8,7 @@ import { KeepAliveService } from './services/KeepAliveService';
 import { WebDashboardService } from './services/WebDashboardService';
 import { DatabaseService } from './services/DatabaseService';
 import { MemoryMonitorService } from './services/MemoryMonitorService';
+import { MemoryCleanupService } from './services/MemoryCleanupService';
 
 export class ReminderChatBot {
   private configService: ConfigService;
@@ -17,6 +18,7 @@ export class ReminderChatBot {
   private keepAliveService!: KeepAliveService;
   private webDashboardService!: WebDashboardService;
   private memoryMonitor!: MemoryMonitorService;
+  private memoryCleanup!: MemoryCleanupService;
   private isRunning = false;
 
   constructor() {
@@ -60,6 +62,9 @@ export class ReminderChatBot {
     
     // Initialize memory monitoring service
     this.memoryMonitor = MemoryMonitorService.getInstance();
+    
+    // Initialize memory cleanup service
+    this.memoryCleanup = MemoryCleanupService.getInstance();
   }
 
   /**
@@ -187,8 +192,9 @@ export class ReminderChatBot {
       // Note: KeepAlive service disabled since WebDashboard already provides /health endpoint
       console.log('ℹ️  Keep-alive functionality provided by Web Dashboard /health endpoint');
 
-      // Start memory monitoring
+      // Start memory monitoring and cleanup
       this.memoryMonitor.startMonitoring(3); // Monitor every 3 minutes
+      this.memoryCleanup.startAutoCleanup(); // Start automatic memory cleanup
       
       this.isRunning = true;
       console.log('✅ Reminder ChatBot started successfully!');
@@ -291,9 +297,13 @@ export class ReminderChatBot {
   private async handleShutdown(): Promise<void> {
     console.log('\n🔄 Graceful shutdown initiated...');
     
-    // Stop memory monitoring
+    // Stop memory monitoring and cleanup
     if (this.memoryMonitor) {
       this.memoryMonitor.stopMonitoring();
+    }
+    
+    if (this.memoryCleanup) {
+      this.memoryCleanup.stopAutoCleanup();
     }
     
     await this.stop();

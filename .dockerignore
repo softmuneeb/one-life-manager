@@ -1,0 +1,63 @@
+# Ignore everything that's not needed for production
+
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Build artifacts that will be rebuilt
+dist
+
+# Development files
+src
+*.ts
+!src  # We need src for building
+tsconfig.json
+
+# Testing
+__tests__
+coverage
+*.test.*
+jest.config.js
+
+# Development tools
+.eslintrc.*
+.prettierrc.*
+nodemon.json
+
+# Documentation
+README.md
+CHANGELOG.md
+*.md
+docs
+
+# Version control
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+
+# Environment (add actual .env with secrets separately)
+.env.local
+.env.development
+.env.test
+
+# Temporary files
+tmp
+temp
+.temp-auth
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Misc
+.nyc_output
+.cache

@@ -2,28 +2,30 @@ services:
   - type: web
     name: barakah-tracker
     runtime: node
-    buildCommand: yarn install && yarn build
-    startCommand: node dist/index.js
-    plan: free
+    buildCommand: |
+      npm ci --only=production --no-audit --no-fund
+      npm run build
+      chmod +x optimize-memory.sh
+      ./optimize-memory.sh
+    startCommand: NODE_OPTIONS="--max-old-space-size=384 --expose-gc" node dist/index.js
+    plan: starter  # 512MB RAM limit - we need at least this for WhatsApp Web
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=384 --expose-gc --optimize-for-size"
+      - key: UV_THREADPOOL_SIZE
+        value: "4"
       - key: TIMETABLE_FILE
         value: muneeb-timetable.csv
       - key: REMINDER_MINUTES_BEFORE
         value: "15"
-      - key: USE_MOCK_WHATSAPP
-        value: "true"
-      - key: USE_WHATSAPP_WEB
-        value: "false"
-      - key: REMINDER_MINUTES_BEFORE
-        value: "15"
       - key: WHATSAPP_PHONE_NUMBER
         sync: false
-      - key: USE_MOCK_WHATSAPP
-        value: "false"
       - key: USE_WHATSAPP_WEB
+        value: "true"
+      - key: USE_MONGO_AUTH
         value: "true"
       - key: WHATSAPP_SESSION_NAME
         sync: false

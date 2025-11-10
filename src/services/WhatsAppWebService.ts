@@ -56,12 +56,38 @@ export class WhatsAppWebService {
       });
     }
     
+    // Optimize Puppeteer config for memory efficiency
+    const puppeteerConfig: any = {
+      headless: true,
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage', // Overcome limited resource problems
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process', // Important for memory optimization
+        '--disable-gpu',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection',
+        '--memory-pressure-off',
+        '--max_old_space_size=256' // Limit V8 heap size
+      ],
+      defaultViewport: { width: 800, height: 600 }, // Smaller viewport to save memory
+      timeout: 60000
+    };
+
+    // Add executable path only if defined
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+      puppeteerConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
+
     this.client = new Client({
       authStrategy,
-      puppeteer: {
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      }
+      puppeteer: puppeteerConfig
     });
 
     // QR Code generation

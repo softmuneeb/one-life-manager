@@ -1,5 +1,6 @@
 import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import { DailyTracking, IDailyTracking } from '../models/DailyTracking';
 import { TimetableParser } from './TimetableParser';
 import { DatabaseService } from './DatabaseService';
@@ -29,17 +30,42 @@ export class WebDashboardService {
    * Setup Express middleware
    */
   private setupMiddleware(): void {
+    // Enable gzip compression for all responses
+    this.app.use(compression({ 
+      level: 6, // Balance between compression and CPU usage
+      threshold: 1024 // Only compress responses larger than 1KB
+    }));
+    
     // Enable CORS for all origins
     this.app.use(cors());
     
-    // Parse JSON bodies
-    this.app.use(express.json());
+    // Parse JSON bodies with size limit for memory efficiency
+    this.app.use(express.json({ limit: '1mb' }));
     
-    // Parse URL-encoded bodies
-    this.app.use(express.urlencoded({ extended: true }));
+    // Parse URL-encoded bodies with size limit
+    this.app.use(express.urlencoded({ extended: true, limit: '1mb' }));
     
     // Static files (for CSS, JS, images)
     this.app.use('/static', express.static('public'));
+    
+    // Memory monitoring middleware
+    this.app.use((req: Request, res: Response, next) => {
+      const memUsage = process.memoryUsage();
+      const rssMB = Math.round(memUsage.rss / 1024 / 1024);
+      
+      // Log high memory usage
+      if (rssMB > 400) {
+        console.warn(`⚠️ High memory usage: ${rssMB}MB RSS`);
+      }
+      
+      // Force garbage collection if memory is high (only in production)
+      if (rssMB > 450 && global.gc) {
+        global.gc();
+        console.log('🗑️ Forced garbage collection due to high memory usage');
+      }
+      
+      next();
+    });
   }
 
   /**
