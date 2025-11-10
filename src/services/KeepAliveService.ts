@@ -38,7 +38,7 @@ export class KeepAliveService {
               status: 'ok',
               timestamp: new Date().toISOString(),
               uptime: process.uptime(),
-              message: '🤖 Reminder ChatBot is alive and running!',
+              message: '🤖 BarakahTracker Bot is alive and running!',
               version: '1.0.0'
             }));
             return;

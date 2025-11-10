@@ -4,6 +4,7 @@ import { TimetableParser } from './services/TimetableParser';
 import { WhatsAppServiceFactory, IWhatsAppService } from './services/WhatsAppService';
 import { SchedulerService } from './services/SchedulerService';
 import { KeepAliveService } from './services/KeepAliveService';
+import { WebDashboardService } from './services/WebDashboardService';
 
 export class ReminderChatBot {
   private configService: ConfigService;
@@ -11,6 +12,7 @@ export class ReminderChatBot {
   private whatsappService!: IWhatsAppService;
   private schedulerService!: SchedulerService;
   private keepAliveService!: KeepAliveService;
+  private webDashboardService!: WebDashboardService;
   private isRunning = false;
 
   constructor() {
@@ -38,6 +40,10 @@ export class ReminderChatBot {
 
     // Initialize keep-alive service for production deployments
     this.keepAliveService = new KeepAliveService();
+    
+    // Initialize web dashboard service for health checks and monitoring
+    const port = parseInt(process.env.PORT || '3001', 10);
+    this.webDashboardService = new WebDashboardService(port, this.timetableParser);
   }
 
   public async start(): Promise<void> {
@@ -73,6 +79,11 @@ export class ReminderChatBot {
       // Start scheduler service
       await this.schedulerService.start();
 
+      // Start web dashboard service for health checks and monitoring
+      await this.webDashboardService.start();
+      const port = parseInt(process.env.PORT || '3001', 10);
+      console.log(`🌐 Web dashboard started on port ${port} (health checks and monitoring)`);
+
       // Start keep-alive service for production environments
       if (process.env.NODE_ENV === 'production' || process.env.RENDER_EXTERNAL_URL) {
         await this.keepAliveService.start();
@@ -103,6 +114,9 @@ export class ReminderChatBot {
     try {
       // Stop keep-alive service
       await this.keepAliveService.stop();
+
+      // Stop web dashboard service
+      await this.webDashboardService.stop();
 
       // Stop scheduler service
       await this.schedulerService.stop();

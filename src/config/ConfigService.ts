@@ -60,6 +60,14 @@ export class ConfigService {
     return this.config.whatsappConfig.phoneNumber || '+1234567890';
   }
 
+  public getMongoUrl(): string {
+    const mongoUrl = process.env.MONGO_URL;
+    if (!mongoUrl) {
+      throw new Error('MONGO_URL environment variable is required');
+    }
+    return mongoUrl;
+  }
+
   public isMockMode(): boolean {
     return this.config.whatsappConfig.isMock || false;
   }
