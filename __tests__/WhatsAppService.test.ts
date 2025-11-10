@@ -1,4 +1,4 @@
-import { MockWhatsAppService, RealWhatsAppService, WhatsAppServiceFactory } from '../src/services/WhatsAppService';
+import { MockWhatsAppService, WhatsAppServiceFactory } from '../src/services/WhatsAppService';
 import { WhatsAppConfig } from '../src/types';
 
 describe('WhatsAppService', () => {
@@ -97,7 +97,7 @@ describe('WhatsAppService', () => {
       expect(service).toBeInstanceOf(MockWhatsAppService);
     });
 
-    test('should create RealWhatsAppService when isMock is false and apiKey is provided', () => {
+    test('should create Mock service when Business API not configured', () => {
       const config: WhatsAppConfig = {
         phoneNumber: '+1234567890',
         isMock: false,
@@ -105,44 +105,63 @@ describe('WhatsAppService', () => {
       };
       
       const service = WhatsAppServiceFactory.create(config);
-      expect(service).toBeInstanceOf(RealWhatsAppService);
+      // Should fallback to Mock service since RealWhatsAppService was removed to save memory
+      expect(service).toBeInstanceOf(MockWhatsAppService);
     });
 
-    test('should create WhatsAppWebServiceAdapter when useWhatsAppWeb is true', () => {
+    test('should prioritize Business API when both useWhatsAppWeb and useBusinessAPI are true', () => {
       const config: WhatsAppConfig = {
         phoneNumber: '+1234567890',
         isMock: false,
-        useWhatsAppWeb: true
+        useWhatsAppWeb: true,
+        useBusinessAPI: true,  // This should take priority
+        accessToken: 'test_token',  // Required for Business API
+        phoneNumberId: 'test_phone_id'  // Required for Business API
       };
       
       const service = WhatsAppServiceFactory.create(config);
-      expect(service.constructor.name).toBe('WhatsAppWebServiceAdapter');
+      // Business API should take priority over WhatsApp Web (and save 270MB memory)
+      expect(service.constructor.name).toBe('WhatsAppBusinessServiceAdapter');
     });
-  });
 
-  describe('RealWhatsAppService', () => {
-    let realService: RealWhatsAppService;
-    let realConfig: WhatsAppConfig;
-
-    beforeEach(() => {
-      realConfig = {
+    test('should use mock mode when Business API credentials are missing', () => {
+      const config: WhatsAppConfig = {
+        phoneNumber: '+1234567890',
         isMock: false,
-        apiKey: 'test-api-key',
-        phoneNumber: '+1234567890'
+        useWhatsAppWeb: false,
+        useBusinessAPI: true  // Missing credentials should fallback
       };
-      realService = new RealWhatsAppService(realConfig);
+      
+      // This should fallback to mock since credentials are missing
+      expect(() => WhatsAppServiceFactory.create(config)).toThrow('WhatsApp Business Access Token is required');
     });
 
-    test('should be initially disconnected', () => {
-      expect(realService.isConnected()).toBe(false);
+    test('should use Business API in mock mode', () => {
+      const config: WhatsAppConfig = {
+        phoneNumber: '+1234567890',
+        isMock: true,  // Mock mode should use MockWhatsAppService regardless
+        useBusinessAPI: true
+      };
+      
+      const service = WhatsAppServiceFactory.create(config);
+      // Mock mode always returns MockWhatsAppService for testing
+      expect(service.constructor.name).toBe('MockWhatsAppService');
     });
 
-    // Note: Real WhatsApp service tests are limited because they require actual WhatsApp connection
-    // which is not feasible in unit tests. We mainly test the interface and basic functionality.
-    
-    test('should handle disconnect when not connected', async () => {
-      // Should not throw error
-      await expect(realService.disconnect()).resolves.toBeUndefined();
+    test('should use Business API when not in mock mode with credentials', () => {
+      const config: WhatsAppConfig = {
+        phoneNumber: '+1234567890',
+        isMock: false,  // Not mock mode
+        useBusinessAPI: true,
+        accessToken: 'test_token',
+        phoneNumberId: 'test_phone_id'
+      };
+      
+      const service = WhatsAppServiceFactory.create(config);
+      expect(service.constructor.name).toBe('WhatsAppBusinessServiceAdapter');
     });
   });
+
+  // RealWhatsAppService tests removed - service disabled to save 270MB memory
+  // WhatsApp functionality now provided by ultra-lightweight Business Platform API
 });

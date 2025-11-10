@@ -1,7 +1,6 @@
 import { WhatsAppConfig } from '../types';
-import { WhatsAppWebService } from './WhatsAppWebService';
-import { WhatsAppWebServiceAdapter } from './WhatsAppWebServiceAdapter';
-import { LightWhatsAppWebService } from './LightWhatsAppWebService';
+// Removed heavy imports: WhatsAppWebService, WhatsAppWebServiceAdapter, LightWhatsAppWebService
+// These required whatsapp-web.js + puppeteer (~270MB total)
 import { BaileysWhatsAppService } from './BaileysWhatsAppService';
 import { WhatsAppBusinessService } from './WhatsAppBusinessService';
 import { WhatsAppBusinessServiceAdapter } from './WhatsAppBusinessServiceAdapter';
@@ -104,92 +103,8 @@ export class MockWhatsAppService implements IWhatsAppService {
   }
 }
 
-export class RealWhatsAppService implements IWhatsAppService {
-  private client: any; // WhatsApp Web.js client
-  private connected = false;
-  private config: WhatsAppConfig;
-
-  constructor(config: WhatsAppConfig) {
-    this.config = config;
-  }
-
-  async initialize(): Promise<void> {
-    // This will be implemented when real WhatsApp API keys are provided
-    console.log('🔗 Initializing Real WhatsApp Service...');
-    
-    // Import WhatsApp Web.js dynamically
-    const { Client, LocalAuth } = await import('whatsapp-web.js');
-    
-    this.client = new Client({
-      authStrategy: new LocalAuth()
-    });
-
-    return new Promise((resolve, reject) => {
-      this.client.on('qr', (qr: string) => {
-        console.log('📱 Scan this QR code with your WhatsApp:');
-        console.log(qr);
-      });
-
-      this.client.on('ready', () => {
-        console.log('✅ WhatsApp Client is ready!');
-        this.connected = true;
-        resolve();
-      });
-
-      this.client.on('auth_failure', (msg: string) => {
-        console.error('❌ Authentication failure:', msg);
-        reject(new Error(`WhatsApp authentication failed: ${msg}`));
-      });
-
-      this.client.initialize();
-    });
-  }
-
-  async sendMessage(recipient: string, message: string): Promise<WhatsAppMessage> {
-    if (!this.connected) {
-      throw new Error('WhatsApp service not initialized. Call initialize() first.');
-    }
-
-    try {
-      // Format phone number (assuming recipient is phone number)
-      const chatId = `${recipient}@c.us`;
-      await this.client.sendMessage(chatId, message);
-
-      const whatsAppMessage: WhatsAppMessage = {
-        recipient,
-        message,
-        timestamp: new Date(),
-        success: true
-      };
-
-      console.log(`📱 WhatsApp message sent to ${recipient}: ${message}`);
-      return whatsAppMessage;
-    } catch (error) {
-      const whatsAppMessage: WhatsAppMessage = {
-        recipient,
-        message,
-        timestamp: new Date(),
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-
-      console.error(`❌ Failed to send WhatsApp message:`, error);
-      return whatsAppMessage;
-    }
-  }
-
-  isConnected(): boolean {
-    return this.connected;
-  }
-
-  async disconnect(): Promise<void> {
-    if (this.client) {
-      await this.client.destroy();
-      this.connected = false;
-      console.log('✅ WhatsApp client disconnected');
-    }
-  }
-}
+// RealWhatsAppService removed - it required whatsapp-web.js (~270MB with Puppeteer)
+// Use WhatsAppBusinessServiceAdapter for production WhatsApp functionality (~4MB)
 
 export class WhatsAppServiceFactory {
   static create(config: WhatsAppConfig): IWhatsAppService {
@@ -199,13 +114,10 @@ export class WhatsAppServiceFactory {
       // ULTRA LIGHTWEIGHT: WhatsApp Business Platform (only ~4MB, no Puppeteer)
       console.log('🚀 Using WhatsApp Business Platform (ultra-lightweight, ~4MB)');
       return new WhatsAppBusinessServiceAdapter(config);
-    } else if (config.useWhatsAppWeb) {
-      // MEDIUM WEIGHT: WhatsApp Web with Puppeteer (~250MB+)
-      console.log('⚠️ Using WhatsApp Web with Puppeteer (heavy, ~250MB+)');
-      return new WhatsAppWebServiceAdapter(config);
     } else {
-      // FALLBACK: Mock service
-      console.log('🧪 Falling back to Mock service - configure useBusinessAPI for production');
+      // FALLBACK: Mock service (old WhatsApp Web removed to save 270MB)
+      console.log('🧪 WhatsApp Web removed for memory savings. Using Mock service.');
+      console.log('💡 Set USE_BUSINESS_API=true for production WhatsApp functionality');
       return new MockWhatsAppService(config);
     }
   }

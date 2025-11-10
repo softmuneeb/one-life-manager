@@ -125,17 +125,17 @@ export class WebDashboardService {
     // WhatsApp sessions endpoint
     this.app.get('/whatsapp/sessions', async (req: Request, res: Response) => {
       try {
-        // Import here to avoid circular dependencies
-        const { MongoAuthStrategy } = await import('./MongoAuthStrategy');
+        // MongoDB Auth disabled - saved 270MB by removing whatsapp-web.js + puppeteer
+        const sessions = ['MongoDB Auth disabled - use WhatsApp Business Platform instead'];
         
-        const sessions = await MongoAuthStrategy.listActiveSessions();
         res.json({
           timestamp: new Date().toISOString(),
           totalSessions: sessions.length,
           sessions: sessions.map((session, index) => ({
             id: index + 1,
             info: session
-          }))
+          })),
+          message: 'MongoDB auth disabled to save memory. Use WhatsApp Business Platform for production.'
         });
       } catch (error) {
         res.status(500).json({ 
