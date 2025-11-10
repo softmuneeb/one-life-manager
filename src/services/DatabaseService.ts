@@ -38,9 +38,13 @@ export class DatabaseService {
       await mongoose.connect(mongoUrl, {
         dbName: 'BarakahTrackerDB', // Use specific database name
         maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5000,
+        serverSelectionTimeoutMS: 30000, // Increased from 5000 for Render
         socketTimeoutMS: 45000,
-        bufferCommands: false
+        connectTimeoutMS: 30000, // Added for better connection handling
+        bufferCommands: false,
+        retryWrites: true, // Enable retry writes
+        retryReads: true, // Enable retry reads
+        maxIdleTimeMS: 30000 // Added for connection pool management
       });
 
       this.isConnected = true;
