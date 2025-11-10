@@ -18,6 +18,10 @@ export class WhatsAppWebServiceAdapter implements IWhatsAppService {
     this.webService = new WhatsAppWebService(webConfig);
   }
 
+  setOnReadyCallback(callback: () => Promise<void> | void): void {
+    this.webService.setOnReadyCallback(callback);
+  }
+
   async initialize(): Promise<void> {
     await this.webService.initialize();
   }

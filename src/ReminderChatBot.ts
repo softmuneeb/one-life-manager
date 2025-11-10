@@ -5,6 +5,7 @@ import { WhatsAppServiceFactory, IWhatsAppService } from './services/WhatsAppSer
 import { SchedulerService } from './services/SchedulerService';
 import { KeepAliveService } from './services/KeepAliveService';
 import { WebDashboardService } from './services/WebDashboardService';
+import { DatabaseService } from './services/DatabaseService';
 
 export class ReminderChatBot {
   private configService: ConfigService;
@@ -29,6 +30,13 @@ export class ReminderChatBot {
 
     // Initialize WhatsApp service
     this.whatsappService = WhatsAppServiceFactory.create(config.whatsappConfig);
+    
+    // Set up callback for when WhatsApp is ready (connects to database)
+    if (this.whatsappService.setOnReadyCallback) {
+      this.whatsappService.setOnReadyCallback(async () => {
+        await this.onWhatsAppReady();
+      });
+    }
 
     // Initialize scheduler service
     this.schedulerService = new SchedulerService(
@@ -107,6 +115,27 @@ export class ReminderChatBot {
       console.error('❌ Failed to start ChatBot:', error);
       await this.handleShutdown();
       throw error;
+    }
+  }
+
+  /**
+   * Called when WhatsApp is authenticated and ready
+   * This is when we connect to the database safely
+   */
+  private async onWhatsAppReady(): Promise<void> {
+    try {
+      console.log('📊 WhatsApp ready - connecting to database...');
+      
+      // Connect to MongoDB now that WhatsApp is authenticated
+      const dbService = DatabaseService.getInstance();
+      await dbService.connect();
+      
+      console.log('✅ Database connected successfully after WhatsApp authentication');
+      console.log('📊 Activity tracking is now available');
+      
+    } catch (error) {
+      console.error('⚠️  Database connection failed after WhatsApp ready:', error);
+      console.log('📝 Activity tracking will not be available, but reminders will still work');
     }
   }
 

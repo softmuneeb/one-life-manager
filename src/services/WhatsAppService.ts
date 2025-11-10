@@ -15,15 +15,21 @@ export interface IWhatsAppService {
   sendMessage(recipient: string, message: string): Promise<WhatsAppMessage>;
   isConnected(): boolean;
   disconnect(): Promise<void>;
+  setOnReadyCallback?(callback: () => Promise<void> | void): void;
 }
 
 export class MockWhatsAppService implements IWhatsAppService {
   private connected = false;
   private sentMessages: WhatsAppMessage[] = [];
   private config: WhatsAppConfig;
+  private onReadyCallback?: () => Promise<void> | void;
 
   constructor(config: WhatsAppConfig) {
     this.config = config;
+  }
+
+  setOnReadyCallback(callback: () => Promise<void> | void): void {
+    this.onReadyCallback = callback;
   }
 
   async initialize(): Promise<void> {
@@ -32,6 +38,15 @@ export class MockWhatsAppService implements IWhatsAppService {
     await new Promise(resolve => setTimeout(resolve, 1000));
     this.connected = true;
     console.log('✅ Mock WhatsApp Service initialized successfully');
+    
+    // Call the ready callback if set
+    if (this.onReadyCallback) {
+      try {
+        await this.onReadyCallback();
+      } catch (error) {
+        console.error('❌ Error in WhatsApp ready callback (mock):', error);
+      }
+    }
   }
 
   async sendMessage(recipient: string, message: string): Promise<WhatsAppMessage> {

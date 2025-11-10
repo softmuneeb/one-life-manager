@@ -11,15 +11,29 @@ export class WhatsAppWebService {
   private client: Client | null = null;
   private config: WhatsAppWebConfig;
   private isReady: boolean = false;
+  private onReadyCallback?: () => Promise<void> | void;
 
   constructor(config: WhatsAppWebConfig) {
     this.config = config;
+  }
+
+  public setOnReadyCallback(callback: () => Promise<void> | void): void {
+    this.onReadyCallback = callback;
   }
 
   public async initialize(): Promise<void> {
     if (this.config.useMock) {
       console.log('🧪 WhatsApp Web Service initialized in MOCK mode');
       this.isReady = true;
+      
+      // Call the ready callback immediately in mock mode
+      if (this.onReadyCallback) {
+        try {
+          await this.onReadyCallback();
+        } catch (error) {
+          console.error('❌ Error in WhatsApp ready callback (mock):', error);
+        }
+      }
       return;
     }
 
@@ -48,9 +62,18 @@ export class WhatsAppWebService {
     });
 
     // Client ready
-    this.client.on('ready', () => {
+    this.client.on('ready', async () => {
       console.log('🚀 WhatsApp Web client is ready!');
       this.isReady = true;
+      
+      // Call the ready callback if set
+      if (this.onReadyCallback) {
+        try {
+          await this.onReadyCallback();
+        } catch (error) {
+          console.error('❌ Error in WhatsApp ready callback:', error);
+        }
+      }
     });
 
     // Authentication failure

@@ -163,8 +163,15 @@ export class WebDashboardService {
       // Get planned schedule from timetable
       const plannedSchedule = await this.timetableParser.getTodaySchedule();
       
-      // Get actual activities from database
-      const tracking = await DailyTracking.getByDate(date);
+      // Get actual activities from database (with graceful fallback)
+      let tracking = null;
+      try {
+        tracking = await DailyTracking.getByDate(date);
+      } catch (dbError) {
+        // Database not connected yet (before WhatsApp auth) - return planned schedule only
+        console.log('ℹ️  Database not connected - showing planned schedule only');
+        tracking = null;
+      }
       
       // Create 30-minute time slots for the entire day
       const timeSlots = this.generateTimeSlots();
@@ -251,7 +258,13 @@ export class WebDashboardService {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
-      const stats = await (DailyTracking as any).getStats(startDate, endDate);
+      let stats = null;
+      try {
+        stats = await (DailyTracking as any).getStats(startDate, endDate);
+      } catch (dbError) {
+        console.log('ℹ️  Database not connected - returning placeholder stats');
+        stats = [];
+      }
       
       return {
         period: `Last ${days} days`,
@@ -568,7 +581,7 @@ export class WebDashboardService {
     }
 
     try {
-      this.server = this.app.listen(this.port, () => {
+      this.server = this.app.listen(this.port, '0.0.0.0', () => {
         console.log(`🌐 BarakahTracker Web Dashboard running on port ${this.port}`);
         console.log(`📊 Visit http://localhost:${this.port} to view today's diary`);
         console.log(`📅 Visit http://localhost:${this.port}/diary/10-Nov-2025 for specific dates`);
