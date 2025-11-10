@@ -2,6 +2,7 @@ import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import { DailyTracking, IDailyTracking } from '../models/DailyTracking';
 import { TimetableParser } from './TimetableParser';
+import { DatabaseService } from './DatabaseService';
 import moment from 'moment';
 
 /**
@@ -163,14 +164,19 @@ export class WebDashboardService {
       // Get planned schedule from timetable
       const plannedSchedule = await this.timetableParser.getTodaySchedule();
       
-      // Get actual activities from database (with graceful fallback)
+      // Get actual activities from database (with proper connection check)
       let tracking = null;
-      try {
-        tracking = await DailyTracking.getByDate(date);
-      } catch (dbError) {
-        // Database not connected yet (before WhatsApp auth) - return planned schedule only
-        console.log('ℹ️  Database not connected - showing planned schedule only');
-        tracking = null;
+      const dbService = DatabaseService.getInstance();
+      
+      if (dbService.isDbConnected()) {
+        try {
+          tracking = await DailyTracking.getByDate(date);
+        } catch (dbError) {
+          console.log('⚠️  Database query failed:', dbError);
+          tracking = null;
+        }
+      } else {
+        console.log('ℹ️  Database not connected yet - showing planned schedule only');
       }
       
       // Create 30-minute time slots for the entire day
@@ -259,9 +265,16 @@ export class WebDashboardService {
       startDate.setDate(startDate.getDate() - days);
 
       let stats = null;
-      try {
-        stats = await (DailyTracking as any).getStats(startDate, endDate);
-      } catch (dbError) {
+      const dbService = DatabaseService.getInstance();
+      
+      if (dbService.isDbConnected()) {
+        try {
+          stats = await (DailyTracking as any).getStats(startDate, endDate);
+        } catch (dbError) {
+          console.log('⚠️  Database stats query failed:', dbError);
+          stats = [];
+        }
+      } else {
         console.log('ℹ️  Database not connected - returning placeholder stats');
         stats = [];
       }

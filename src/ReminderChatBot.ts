@@ -1,4 +1,5 @@
 import * as path from 'path';
+import * as os from 'os';
 import { ConfigService } from './config/ConfigService';
 import { TimetableParser } from './services/TimetableParser';
 import { WhatsAppServiceFactory, IWhatsAppService } from './services/WhatsAppService';
@@ -56,6 +57,79 @@ export class ReminderChatBot {
     this.webDashboardService = new WebDashboardService(port, this.timetableParser);
   }
 
+  /**
+   * Get current IP addresses for MongoDB whitelisting
+   */
+  private getIPAddresses(): { ipv4: string[], ipv6: string[] } {
+    const interfaces = os.networkInterfaces();
+    const ipv4: string[] = [];
+    const ipv6: string[] = [];
+
+    for (const interfaceName in interfaces) {
+      const addresses = interfaces[interfaceName];
+      if (addresses) {
+        for (const address of addresses) {
+          if (!address.internal) {
+            if (address.family === 'IPv4') {
+              ipv4.push(address.address);
+            } else if (address.family === 'IPv6') {
+              ipv6.push(address.address);
+            }
+          }
+        }
+      }
+    }
+
+    return { ipv4, ipv6 };
+  }
+
+  /**
+   * Get external IP address from external service
+   */
+  private async getExternalIP(): Promise<string | null> {
+    try {
+      const response = await fetch('https://ipv4.icanhazip.com');
+      const ip = await response.text();
+      return ip.trim();
+    } catch (error) {
+      try {
+        // Fallback to another service
+        const response = await fetch('https://api.ipify.org');
+        const ip = await response.text();
+        return ip.trim();
+      } catch (fallbackError) {
+        console.log('⚠️  Could not determine external IP address');
+        return null;
+      }
+    }
+  }
+
+  /**
+   * Log IP information for MongoDB whitelisting
+   */
+  private async logIPInformation(): Promise<void> {
+    console.log('🌐 IP Address Information for MongoDB Whitelisting:');
+    console.log('════════════════════════════════════════════════════');
+    
+    // Get local network interfaces
+    const localIPs = this.getIPAddresses();
+    
+    if (localIPs.ipv4.length > 0) {
+      console.log('📍 Local IPv4 Addresses:');
+      localIPs.ipv4.forEach(ip => console.log(`   • ${ip}`));
+    }
+    
+    // Get external IP
+    const externalIP = await this.getExternalIP();
+    if (externalIP) {
+      console.log('🌍 External IP Address (use this for MongoDB):');
+      console.log(`   • ${externalIP}`);
+      console.log('💡 Add this IP to MongoDB Atlas Network Access List');
+    }
+    
+    console.log('════════════════════════════════════════════════════');
+  }
+
   public async start(): Promise<void> {
     if (this.isRunning) {
       console.log('⚠️ ChatBot is already running');
@@ -76,6 +150,9 @@ export class ReminderChatBot {
 
       // Print configuration
       this.configService.printConfig();
+
+      // Log IP address information for MongoDB whitelisting
+      await this.logIPInformation();
 
       // Validate configuration
       const validation = this.configService.validateConfig();
@@ -126,6 +203,9 @@ export class ReminderChatBot {
     try {
       console.log('📊 WhatsApp ready - connecting to database...');
       
+      // Log IP address for MongoDB connection
+      await this.logIPInformation();
+      
       // Connect to MongoDB now that WhatsApp is authenticated
       const dbService = DatabaseService.getInstance();
       await dbService.connect();
@@ -136,6 +216,9 @@ export class ReminderChatBot {
     } catch (error) {
       console.error('⚠️  Database connection failed after WhatsApp ready:', error);
       console.log('📝 Activity tracking will not be available, but reminders will still work');
+      
+      // Log IP information even if connection fails to help with troubleshooting
+      await this.logIPInformation();
     }
   }
 
