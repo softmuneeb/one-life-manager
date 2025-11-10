@@ -17,6 +17,7 @@ export interface WhatsAppConfig {
   isMock?: boolean;
   useWhatsAppWeb?: boolean;
   sessionName?: string;
+  useMongoAuth?: boolean; // Enable MongoDB-based authentication persistence
 }
 
 export interface ChatBotConfig {

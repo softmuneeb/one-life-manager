@@ -1,10 +1,12 @@
 import { Client, LocalAuth } from 'whatsapp-web.js';
 import qrcode from 'qrcode-terminal';
+import { MongoAuthStrategy } from './MongoAuthStrategy';
 
 export interface WhatsAppWebConfig {
   phoneNumber: string;
   useMock: boolean;
   sessionName?: string;
+  useMongoAuth?: boolean; // New option to enable MongoDB authentication
 }
 
 export class WhatsAppWebService {
@@ -39,10 +41,15 @@ export class WhatsAppWebService {
 
     console.log('🔗 Initializing WhatsApp Web Service...');
     
+    // Choose authentication strategy based on configuration
+    const authStrategy = this.config.useMongoAuth 
+      ? new MongoAuthStrategy({ clientId: this.config.sessionName || 'cute99-assistant' })
+      : new LocalAuth({ clientId: this.config.sessionName || 'cute99-assistant' });
+
+    console.log(`📱 Using ${this.config.useMongoAuth ? 'MongoDB' : 'Local'} authentication strategy`);
+    
     this.client = new Client({
-      authStrategy: new LocalAuth({
-        clientId: this.config.sessionName || 'cute99-assistant'
-      }),
+      authStrategy,
       puppeteer: {
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox']

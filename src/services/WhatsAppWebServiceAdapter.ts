@@ -12,7 +12,8 @@ export class WhatsAppWebServiceAdapter implements IWhatsAppService {
     const webConfig: WhatsAppWebConfig = {
       phoneNumber: config.phoneNumber || '+1234567890',
       useMock: config.isMock || false,
-      sessionName: config.sessionName || 'cute99-assistant'
+      sessionName: config.sessionName || 'cute99-assistant',
+      useMongoAuth: config.useMongoAuth || false // Pass MongoDB auth option
     };
     
     this.webService = new WhatsAppWebService(webConfig);

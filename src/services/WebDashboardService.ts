@@ -96,6 +96,29 @@ export class WebDashboardService {
       }
     });
 
+    // WhatsApp sessions endpoint
+    this.app.get('/whatsapp/sessions', async (req: Request, res: Response) => {
+      try {
+        // Import here to avoid circular dependencies
+        const { MongoAuthStrategy } = await import('./MongoAuthStrategy');
+        
+        const sessions = await MongoAuthStrategy.listActiveSessions();
+        res.json({
+          timestamp: new Date().toISOString(),
+          totalSessions: sessions.length,
+          sessions: sessions.map((session, index) => ({
+            id: index + 1,
+            info: session
+          }))
+        });
+      } catch (error) {
+        res.status(500).json({ 
+          error: 'Failed to fetch WhatsApp sessions', 
+          details: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+
     // Main dashboard route - today's diary
     this.app.get('/', async (req: Request, res: Response) => {
       try {

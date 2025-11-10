@@ -30,7 +30,8 @@ export class ConfigService {
       phoneNumber: process.env.WHATSAPP_PHONE_NUMBER || process.env.RECIPIENT_PHONE || '+1234567890',
       isMock: process.env.USE_MOCK_WHATSAPP === 'true',
       useWhatsAppWeb: process.env.USE_WHATSAPP_WEB === 'true',
-      sessionName: process.env.WHATSAPP_SESSION_NAME || 'cute99-assistant'
+      sessionName: process.env.WHATSAPP_SESSION_NAME || 'cute99-assistant',
+      useMongoAuth: process.env.USE_MONGO_AUTH === 'true' // Enable MongoDB auth persistence
     };
 
     return {
@@ -87,7 +88,8 @@ export class ConfigService {
         phoneNumber: '+1234567890',
         isMock: true,
         useWhatsAppWeb: false,
-        sessionName: 'cute99-assistant'
+        sessionName: 'cute99-assistant',
+        useMongoAuth: false
       }
     };
   }
