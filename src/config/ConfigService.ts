@@ -31,7 +31,7 @@ export class ConfigService {
       isMock: process.env.USE_MOCK_WHATSAPP === 'true',
       useWhatsAppWeb: process.env.USE_WHATSAPP_WEB === 'true',
       sessionName: process.env.WHATSAPP_SESSION_NAME || 'cute99-assistant',
-      useMongoAuth: process.env.USE_MONGO_AUTH === 'true' // Enable MongoDB auth persistence
+      useMongoAuth: false // Temporarily disabled - fix auth strategy first
     };
 
     return {

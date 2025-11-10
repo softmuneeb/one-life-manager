@@ -1,4 +1,3 @@
-import { AuthStrategy } from 'whatsapp-web.js';
 import mongoose, { Document, Schema } from 'mongoose';
 
 // Interface for WhatsApp session data
@@ -20,14 +19,6 @@ const WhatsAppSessionSchema = new Schema<IWhatsAppSession>({
   sessionData: {
     type: String,
     required: true
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
   }
 }, {
   collection: 'whatsapp_sessions',
@@ -42,57 +33,27 @@ const WhatsAppSession = mongoose.model<IWhatsAppSession>('WhatsAppSession', What
  * Stores session data in MongoDB instead of local files.
  * Perfect for cloud deployments where local storage is ephemeral.
  */
-export class MongoAuthStrategy extends AuthStrategy {
-  private clientId: string;
+export class MongoAuthStrategy {
+  public clientId: string;
 
   constructor(options: { clientId: string }) {
-    super();
     this.clientId = options.clientId;
   }
 
-  async getWebAuthSession(): Promise<string | null> {
+  async beforeBrowserInitialized(): Promise<void> {
+    // This method is called before the browser is initialized
+  }
+
+  async logout(): Promise<void> {
     try {
-      // Retrieve session data from MongoDB
-      const session = await WhatsAppSession.findOne({ clientId: this.clientId });
-      
-      if (session && session.sessionData) {
-        console.log(`📱 Retrieved WhatsApp session from MongoDB for client: ${this.clientId}`);
-        return session.sessionData;
-      }
-      
-      console.log(`🆕 No existing WhatsApp session found in MongoDB for client: ${this.clientId}`);
-      return null;
-      
+      await WhatsAppSession.deleteOne({ clientId: this.clientId });
+      console.log(`🗑️ MongoDB: WhatsApp session deleted for ${this.clientId}`);
     } catch (error) {
-      console.error('❌ Error retrieving session data from MongoDB:', error);
-      return null;
+      console.error('❌ MongoDB: Error removing session:', error);
     }
   }
 
-  async setWebAuthSession(session: string): Promise<void> {
-    try {
-      // Store or update session data in MongoDB
-      await WhatsAppSession.findOneAndUpdate(
-        { clientId: this.clientId },
-        { 
-          sessionData: session,
-          updatedAt: new Date()
-        },
-        { 
-          upsert: true, // Create if doesn't exist
-          new: true
-        }
-      );
-      
-      console.log(`💾 WhatsApp session data saved to MongoDB for client: ${this.clientId}`);
-      
-    } catch (error) {
-      console.error('❌ Error saving session data to MongoDB:', error);
-      throw error;
-    }
-  }
-
-  async removeWebAuthSession(): Promise<void> {
+  async destroy(): Promise<void> {
     await this.logout();
   }
 
