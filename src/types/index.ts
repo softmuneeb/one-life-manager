@@ -18,6 +18,12 @@ export interface WhatsAppConfig {
   useWhatsAppWeb?: boolean;
   sessionName?: string;
   useMongoAuth?: boolean; // Enable MongoDB-based authentication persistence
+  // WhatsApp Business Platform options (Cloud API - ultra lightweight)
+  useBusinessAPI?: boolean; // Enable WhatsApp Business Platform (only ~4MB vs 250MB+)
+  accessToken?: string | undefined; // WhatsApp Business Access Token
+  phoneNumberId?: string | undefined; // WhatsApp Business Phone Number ID
+  webhookVerifyToken?: string | undefined; // Webhook verification token
+  apiVersion?: string | undefined; // API version (default: v21.0)
 }
 
 export interface ChatBotConfig {

@@ -31,7 +31,13 @@ export class ConfigService {
       isMock: process.env.USE_MOCK_WHATSAPP === 'true',
       useWhatsAppWeb: process.env.USE_WHATSAPP_WEB === 'true',
       sessionName: process.env.WHATSAPP_SESSION_NAME || 'cute99-assistant',
-      useMongoAuth: process.env.USE_MONGO_AUTH === 'true' || false
+      useMongoAuth: process.env.USE_MONGO_AUTH === 'true' || false,
+      // WhatsApp Business Platform (ultra-lightweight option)
+      useBusinessAPI: process.env.USE_BUSINESS_API === 'true',
+      accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
+      phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
+      webhookVerifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
+      apiVersion: process.env.WHATSAPP_API_VERSION || 'v21.0'
     };
 
     return {

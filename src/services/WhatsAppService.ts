@@ -1,6 +1,10 @@
 import { WhatsAppConfig } from '../types';
 import { WhatsAppWebService } from './WhatsAppWebService';
 import { WhatsAppWebServiceAdapter } from './WhatsAppWebServiceAdapter';
+import { LightWhatsAppWebService } from './LightWhatsAppWebService';
+import { BaileysWhatsAppService } from './BaileysWhatsAppService';
+import { WhatsAppBusinessService } from './WhatsAppBusinessService';
+import { WhatsAppBusinessServiceAdapter } from './WhatsAppBusinessServiceAdapter';
 
 export interface WhatsAppMessage {
   recipient: string;
@@ -191,10 +195,18 @@ export class WhatsAppServiceFactory {
   static create(config: WhatsAppConfig): IWhatsAppService {
     if (config.isMock) {
       return new MockWhatsAppService(config);
+    } else if (config.useBusinessAPI) {
+      // ULTRA LIGHTWEIGHT: WhatsApp Business Platform (only ~4MB, no Puppeteer)
+      console.log('🚀 Using WhatsApp Business Platform (ultra-lightweight, ~4MB)');
+      return new WhatsAppBusinessServiceAdapter(config);
     } else if (config.useWhatsAppWeb) {
+      // MEDIUM WEIGHT: WhatsApp Web with Puppeteer (~250MB+)
+      console.log('⚠️ Using WhatsApp Web with Puppeteer (heavy, ~250MB+)');
       return new WhatsAppWebServiceAdapter(config);
     } else {
-      return new RealWhatsAppService(config);
+      // FALLBACK: Mock service
+      console.log('🧪 Falling back to Mock service - configure useBusinessAPI for production');
+      return new MockWhatsAppService(config);
     }
   }
 }
