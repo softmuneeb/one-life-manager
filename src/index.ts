@@ -14,6 +14,12 @@ async function main() {
 
   try {
     switch (command) {
+      case 'check-env':
+        console.log('🔍 Checking Environment Configuration...');
+        console.log('════════════════════════════════════════');
+        chatBot.checkEnvironmentVariables();
+        break;
+
       case 'test':
         console.log('🧪 Running test mode...');
         await chatBot.start();
@@ -101,6 +107,7 @@ Examples:
   npm start                     # Start the chatbot
   npm run dev                   # Start in development mode
   npm test                      # Run test suite
+  node dist/index.js check-env  # Check environment variables setup
   node dist/index.js test       # Run test mode
   node dist/index.js status     # Check status
   node dist/index.js schedule   # Show today's schedule

@@ -122,6 +122,188 @@ export class ConfigService {
     };
   }
 
+  /**
+   * Validate critical environment variables and provide helpful setup instructions
+   */
+  public validateEnvironmentVariables(): { valid: boolean; missing: string[]; instructions: string[] } {
+    const missing: string[] = [];
+    const instructions: string[] = [];
+
+    // Define critical environment variables with their descriptions
+    const criticalEnvVars = [
+      {
+        name: 'WHATSAPP_PHONE_NUMBER',
+        value: process.env.WHATSAPP_PHONE_NUMBER,
+        description: 'Your WhatsApp phone number (recipient of reminders)',
+        example: '+1234567890',
+        required: true
+      },
+      {
+        name: 'TIMETABLE_FILE', 
+        value: process.env.TIMETABLE_FILE,
+        description: 'Path to your CSV timetable file',
+        example: 'my-timetable.csv',
+        required: true
+      },
+      {
+        name: 'MONGO_URL',
+        value: process.env.MONGO_URL,
+        description: 'MongoDB connection string for activity tracking',
+        example: 'mongodb+srv://user:password@cluster.mongodb.net/database',
+        required: true
+      },
+      {
+        name: 'REMINDER_MINUTES_BEFORE',
+        value: process.env.REMINDER_MINUTES_BEFORE,
+        description: 'Minutes before each activity to send reminder',
+        example: '15',
+        required: false,
+        default: '15'
+      },
+      {
+        name: 'USE_MOCK_WHATSAPP',
+        value: process.env.USE_MOCK_WHATSAPP,
+        description: 'Whether to use mock WhatsApp (for testing)',
+        example: 'false',
+        required: false,
+        default: 'false'
+      },
+      {
+        name: 'NODE_ENV',
+        value: process.env.NODE_ENV,
+        description: 'Application environment',
+        example: 'production',
+        required: false,
+        default: 'development'
+      }
+    ];
+
+    // Check each environment variable
+    for (const envVar of criticalEnvVars) {
+      if (envVar.required && (!envVar.value || envVar.value.trim() === '')) {
+        missing.push(envVar.name);
+        instructions.push(
+          `❌ ${envVar.name}: ${envVar.description}\n` +
+          `   💡 Example: ${envVar.name}="${envVar.example}"`
+        );
+      } else if (!envVar.required && !envVar.value) {
+        instructions.push(
+          `⚠️  ${envVar.name}: ${envVar.description} (Optional)\n` +
+          `   💡 Example: ${envVar.name}="${envVar.example}"\n` +
+          `   🔧 Default: "${envVar.default}"`
+        );
+      }
+    }
+
+    // Add production-specific checks
+    if (process.env.NODE_ENV === 'production') {
+      const prodEnvVars = [
+        {
+          name: 'PORT',
+          value: process.env.PORT,
+          description: 'Server port (usually provided by hosting platform)',
+          required: false
+        }
+      ];
+
+      for (const envVar of prodEnvVars) {
+        if (!envVar.value) {
+          instructions.push(
+            `ℹ️  ${envVar.name}: ${envVar.description} (Production only)`
+          );
+        }
+      }
+    }
+
+    return {
+      valid: missing.length === 0,
+      missing,
+      instructions
+    };
+  }
+
+  /**
+   * Display comprehensive setup instructions for missing environment variables
+   */
+  public displayEnvironmentSetupInstructions(): void {
+    const validation = this.validateEnvironmentVariables();
+
+    if (validation.valid) {
+      console.log('✅ All critical environment variables are properly configured!');
+      return;
+    }
+
+    console.log('\n🚨 ENVIRONMENT SETUP REQUIRED');
+    console.log('══════════════════════════════════════════════════════════════');
+    console.log('');
+    console.log('⚠️  Critical environment variables are missing or invalid!');
+    console.log('');
+    console.log('📋 REQUIRED ENVIRONMENT VARIABLES:');
+    console.log('');
+
+    validation.instructions.forEach(instruction => {
+      console.log(instruction);
+      console.log('');
+    });
+
+    console.log('🛠️  HOW TO FIX:');
+    console.log('');
+    console.log('1️⃣  Create/Update .env file in your project root:');
+    console.log('');
+    console.log('   touch .env');
+    console.log('');
+    console.log('2️⃣  Add the missing variables to your .env file:');
+    console.log('');
+    
+    validation.missing.forEach(varName => {
+      const envVar = this.getEnvironmentVariableInfo(varName);
+      console.log(`   echo '${varName}="${envVar.example}"' >> .env`);
+    });
+
+    console.log('');
+    console.log('3️⃣  Update the example values with your actual configuration');
+    console.log('');
+    console.log('4️⃣  Restart the application');
+    console.log('');
+    console.log('📚 ADDITIONAL HELP:');
+    console.log('');
+    console.log('   📱 WhatsApp Setup: Check WHATSAPP_SETUP.md');
+    console.log('   🗃️  MongoDB Setup: Create free cluster at mongodb.com/atlas');
+    console.log('   📄 CSV Timetable: Create your schedule in CSV format');
+    console.log('');
+    console.log('══════════════════════════════════════════════════════════════');
+  }
+
+  /**
+   * Get detailed information about a specific environment variable
+   */
+  private getEnvironmentVariableInfo(varName: string): { example: string; description: string } {
+    const envVarMap: { [key: string]: { example: string; description: string } } = {
+      'WHATSAPP_PHONE_NUMBER': {
+        example: '+1234567890',
+        description: 'Your WhatsApp phone number (recipient of reminders)'
+      },
+      'TIMETABLE_FILE': {
+        example: 'my-timetable.csv',
+        description: 'Path to your CSV timetable file'
+      },
+      'MONGO_URL': {
+        example: 'mongodb+srv://user:password@cluster.mongodb.net/database',
+        description: 'MongoDB connection string for activity tracking'
+      },
+      'REMINDER_MINUTES_BEFORE': {
+        example: '15',
+        description: 'Minutes before each activity to send reminder'
+      },
+      'USE_MOCK_WHATSAPP': {
+        example: 'false',
+        description: 'Whether to use mock WhatsApp (for testing)'
+      }
+    };
+
+    return envVarMap[varName] || { example: 'value', description: 'Environment variable' };
+  }
+
   public printConfig(): void {
     console.log('🔧 Current Configuration:');
     console.log(`   📁 Timetable File: ${this.config.timetableFile}`);

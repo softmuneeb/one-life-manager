@@ -56,6 +56,14 @@ export class ReminderChatBot {
       console.log('🤖 Starting Reminder ChatBot...');
       console.log('════════════════════════════════════════');
 
+      // First, validate critical environment variables
+      const envValidation = this.configService.validateEnvironmentVariables();
+      if (!envValidation.valid) {
+        console.error('🚨 Critical environment variables are missing!');
+        this.configService.displayEnvironmentSetupInstructions();
+        process.exit(1);
+      }
+
       // Print configuration
       this.configService.printConfig();
 
@@ -223,6 +231,23 @@ export class ReminderChatBot {
 
   public async getTodaySchedule(): Promise<any[]> {
     return await this.timetableParser.getTodaySchedule();
+  }
+
+  /**
+   * Check and display environment variable configuration status
+   */
+  public checkEnvironmentVariables(): void {
+    this.configService.displayEnvironmentSetupInstructions();
+    const envValidation = this.configService.validateEnvironmentVariables();
+    
+    if (envValidation.valid) {
+      console.log('🎉 All environment variables are properly configured!');
+      console.log('✅ You can start the application with: npm start');
+    } else {
+      console.log(`❌ ${envValidation.missing.length} critical environment variable(s) missing`);
+      console.log('⚠️  Please fix the issues above before starting the application');
+      process.exit(1);
+    }
   }
 
   // Setup graceful shutdown handlers
