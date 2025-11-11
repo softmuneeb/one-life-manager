@@ -28,7 +28,7 @@ export class ConfigService {
     const whatsappConfig: WhatsAppConfig = {
       apiKey: process.env.WHATSAPP_API_KEY,
       phoneNumber: process.env.WHATSAPP_PHONE_NUMBER || process.env.RECIPIENT_PHONE || '+1234567890',
-      isMock: process.env.USE_MOCK_WHATSAPP === 'true',
+      isMock: process.env.USE_MOCK_WHATSAPP !== 'false', // Default to mock mode unless explicitly disabled
       useWhatsAppWeb: process.env.USE_WHATSAPP_WEB === 'true',
       sessionName: process.env.WHATSAPP_SESSION_NAME || 'cute99-assistant',
       useMongoAuth: process.env.USE_MONGO_AUTH === 'true' || false,

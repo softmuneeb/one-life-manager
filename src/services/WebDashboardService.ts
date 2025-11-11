@@ -79,7 +79,7 @@ export class WebDashboardService {
         timestamp: new Date().toISOString(),
         service: 'BarakahTracker Web Dashboard',
         uptime: process.uptime(),
-        version: 'v1.1.3-force-deploy',
+        version: 'v1.2.0-mock-by-default',
         commit: process.env.GIT_COMMIT || 'unknown'
       });
     });
