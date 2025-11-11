@@ -184,15 +184,23 @@ export class ActivityTracker {
   private async getPlannedActivity(time: moment.Moment): Promise<string> {
     try {
       const todaySchedule = await this.timetableParser.getTodaySchedule();
-      const currentTimeStr = time.format('h:mm A');
       
-      // Find matching time slot in timetable
-      const matchingEntry = todaySchedule.find((entry: any) => {
-        const entryStartTime = entry.timeSlot.split(' to ')[0].trim();
-        return entryStartTime === currentTimeStr;
+      // Find the entry where current time falls within the time range
+      const matchingEntry = todaySchedule.find((entry) => {
+        const entryStart = moment(entry.startTime);
+        const entryEnd = moment(entry.endTime);
+        
+        // Check if current time falls within this entry's time range
+        return time.isBetween(entryStart, entryEnd, 'minute', '[]');
       });
       
-      return matchingEntry ? matchingEntry.activity : 'Free time';
+      if (matchingEntry) {
+        console.log(`📋 Found planned activity for ${time.format('h:mm A')}: ${matchingEntry.activity}`);
+        return matchingEntry.activity;
+      } else {
+        console.log(`📋 No planned activity found for ${time.format('h:mm A')}, using 'Free time'`);
+        return 'Free time';
+      }
     } catch (error) {
       console.error('⚠️ Could not get planned activity:', error);
       return 'Free time';
