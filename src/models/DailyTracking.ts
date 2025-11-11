@@ -103,7 +103,7 @@ DailyTrackingSchema.statics = {
   /**
    * Find or create today's tracking document
    */
-  async findOrCreateToday(userId: string = 'muneeb'): Promise<IDailyTracking> {
+  async findOrCreateToday(userId: string = 'default'): Promise<IDailyTracking> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -124,7 +124,7 @@ DailyTrackingSchema.statics = {
   /**
    * Get tracking data for a specific date
    */
-  async getByDate(date: Date, userId: string = 'muneeb'): Promise<IDailyTracking | null> {
+  async getByDate(date: Date, userId: string = 'default'): Promise<IDailyTracking | null> {
     const targetDate = new Date(date);
     targetDate.setHours(0, 0, 0, 0);
     
@@ -134,7 +134,7 @@ DailyTrackingSchema.statics = {
   /**
    * Get tracking stats for a date range
    */
-  async getStats(startDate: Date, endDate: Date, userId: string = 'muneeb') {
+  async getStats(startDate: Date, endDate: Date, userId: string = 'default') {
     return this.aggregate([
       {
         $match: {

@@ -75,10 +75,12 @@ export class WebDashboardService {
     // Health check endpoint
     this.app.get('/health', (req: Request, res: Response) => {
       res.json({
-        status: 'ok',
+        status: 'OK',
         timestamp: new Date().toISOString(),
         service: 'BarakahTracker Web Dashboard',
-        uptime: process.uptime()
+        uptime: process.uptime(),
+        version: 'v1.1.0-timetable-fix',
+        commit: process.env.GIT_COMMIT || 'unknown'
       });
     });
 
@@ -196,6 +198,54 @@ export class WebDashboardService {
       }
     });
 
+    // Debug endpoint to see tracking data
+    this.app.get('/api/debug', async (req: Request, res: Response) => {
+      try {
+        const date = new Date();
+        const dbService = DatabaseService.getInstance();
+        
+        const result = {
+          serverTime: new Date().toISOString(),
+          dbConnected: dbService.isDbConnected(),
+          tracking: null as any,
+          generatedSlots: [] as string[],
+          matchTest: {} as any
+        };
+        
+        if (dbService.isDbConnected()) {
+          const tracking = await DailyTracking.getByDate(date);
+          if (tracking) {
+            result.tracking = {
+              date: tracking.date,
+              userId: tracking.userId,
+              entriesCount: tracking.entries.length,
+              firstEntry: tracking.entries[0] ? {
+                timeSlot: (tracking.entries[0] as any).timeSlot,
+                plannedActivity: (tracking.entries[0] as any).plannedActivity
+              } : null
+            };
+          }
+          
+          // Test time slot matching
+          if (tracking && tracking.entries.length > 0) {
+            const timeSlots = this.generateTimeSlots();
+            result.generatedSlots = timeSlots.slice(8, 12); // Around 5 AM area
+            
+            const firstEntry = tracking.entries[0] as any;
+            result.matchTest = {
+              dbSlot: firstEntry.timeSlot,
+              generatedSlot: timeSlots[10] || 'undefined',
+              matches: timeSlots[10] ? this.timeSlotMatches(firstEntry.timeSlot, timeSlots[10]) : false
+            };
+          }
+        }
+        
+        res.json(result);
+      } catch (error: any) {
+        res.status(500).json({ error: error?.message || 'Unknown error' });
+      }
+    });
+
     // Refresh planned activities endpoint
     this.app.post('/api/refresh-planned-activities', async (req: Request, res: Response) => {
       try {
@@ -291,51 +341,57 @@ export class WebDashboardService {
     try {
       // Get planned schedule from timetable
       const plannedSchedule = await this.timetableParser.getTodaySchedule();
+      console.log(`📅 Loaded ${plannedSchedule.length} entries from timetable`);
       
       // Get actual activities from database (with proper connection check)
       let tracking = null;
+      let debugInfo = '';
       const dbService = DatabaseService.getInstance();
       
       if (dbService.isDbConnected()) {
         try {
           tracking = await DailyTracking.getByDate(date);
+          debugInfo = `DB connected, tracking: ${tracking ? `${tracking.entries.length} entries, userId: ${tracking.userId}` : 'null'}`;
+          console.log(`🔍 WebDashboard: ${debugInfo}`);
         } catch (dbError) {
+          debugInfo = `DB error: ${dbError}`;
           console.log('⚠️  Database query failed:', dbError);
           tracking = null;
         }
       } else {
+        debugInfo = 'DB not connected';
         console.log('ℹ️  Database not connected yet - showing planned schedule only');
       }
-      
+
       // Create 30-minute time slots for the entire day
       const timeSlots = this.generateTimeSlots();
       
       // Merge planned and actual data
       const mergedData = timeSlots.map(slot => {
-        // Find planned activity
+        // Find planned activity from timetable
         const planned = plannedSchedule.find(entry => 
-          this.timeSlotMatches(entry.timeSlot, slot)
+          this.normalizeTimeSlot(entry.timeSlot) === this.normalizeTimeSlot(slot)
         );
         
-        // Find actual activity
+        // Find actual activity from tracking data
         const actual = tracking?.entries.find(entry => 
-          this.timeSlotMatches(entry.timeSlot, slot)
+          this.normalizeTimeSlot((entry as any).timeSlot) === this.normalizeTimeSlot(slot)
         );
         
         return {
           timeSlot: slot,
           plannedActivity: planned?.activity || 'Free time',
-          actualActivity: actual?.actualActivity || '',
-          isCompleted: actual?.isCompleted || false,
-          mood: actual?.mood || '',
-          notes: actual?.notes || '',
-          timestamp: actual?.timestamp || null
+          actualActivity: (actual as any)?.actualActivity || '',
+          isCompleted: (actual as any)?.isCompleted || false,
+          mood: (actual as any)?.mood || '',
+          notes: (actual as any)?.notes || '',
+          timestamp: (actual as any)?.timestamp || null
         };
       });
 
       // Calculate completion rate
       const completedSlots = mergedData.filter(item => item.isCompleted).length;
-      const completionRate = timeSlots.length > 0 ? (completedSlots / timeSlots.length) * 100 : 0;
+      const completionRate = mergedData.length > 0 ? (completedSlots / mergedData.length) * 100 : 0;
 
       return {
         date,
@@ -344,11 +400,12 @@ export class WebDashboardService {
         completionRate,
         summary: tracking?.getSummary() || {
           date,
-          totalSlots: timeSlots.length,
+          totalSlots: mergedData.length,
           completedSlots,
-          pendingSlots: timeSlots.length - completedSlots,
+          pendingSlots: mergedData.length - completedSlots,
           completionRate,
-          lastUpdate: new Date()
+          lastUpdate: new Date(),
+          debug: debugInfo
         }
       };
     } catch (error) {
@@ -381,6 +438,14 @@ export class WebDashboardService {
     // Normalize both slots to compare
     const normalize = (slot: string) => slot.replace(/\s+/g, ' ').trim().toLowerCase();
     return normalize(slot1) === normalize(slot2);
+  }
+
+  /**
+   * Normalize time slot format for comparison
+   * Converts "5:00 AM to 5:30 AM" to "5:00 AM - 5:30 AM"
+   */
+  private normalizeTimeSlot(timeSlot: string): string {
+    return timeSlot.replace(/\s+to\s+/gi, ' - ').replace(/\s+/g, ' ').trim().toLowerCase();
   }
 
   /**
