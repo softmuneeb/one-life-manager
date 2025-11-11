@@ -185,14 +185,52 @@ export class WebDashboardService {
       }
     });
 
-    // API endpoint to get today's diary data as JSON
+        // API Routes
     this.app.get('/api/diary', async (req: Request, res: Response) => {
       try {
         const date = new Date();
         const diaryData = await this.getDiaryData(date);
         res.json(diaryData);
       } catch (error) {
-        this.handleError(res, error, 'Failed to fetch diary data');
+        res.status(500).json({ error: 'Failed to fetch diary data' });
+      }
+    });
+
+    // Refresh planned activities endpoint
+    this.app.post('/api/refresh-planned-activities', async (req: Request, res: Response) => {
+      try {
+        console.log('🔄 Manual refresh of planned activities requested');
+        
+        // Get today's tracking and timetable
+        const tracking = await DailyTracking.findOrCreateToday();
+        const todaySchedule = await this.timetableParser.getTodaySchedule();
+        
+        let updatedCount = 0;
+        
+        // Force update all entries with planned activities
+        for (const scheduleEntry of todaySchedule) {
+          const normalizedTimeSlot = scheduleEntry.timeSlot.replace(' to ', ' - ');
+          const existingEntry = tracking.entries.find((e: any) => e.timeSlot === normalizedTimeSlot);
+          
+          if (existingEntry) {
+            existingEntry.plannedActivity = scheduleEntry.activity;
+            updatedCount++;
+            console.log(`🔄 Force updated: ${normalizedTimeSlot} -> ${scheduleEntry.activity}`);
+          }
+        }
+        
+        await tracking.save();
+        
+        res.json({
+          success: true,
+          message: `Updated ${updatedCount} planned activities`,
+          updatedCount,
+          timestamp: new Date().toISOString()
+        });
+        
+      } catch (error: any) {
+        console.error('❌ Failed to refresh planned activities:', error);
+        res.status(500).json({ error: 'Failed to refresh planned activities', details: error.message });
       }
     });
 
