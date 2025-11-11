@@ -338,12 +338,17 @@ Great job staying on track! 🎯`;
       const tracking = await DailyTracking.findOrCreateToday();
       const todaySchedule = await this.timetableParser.getTodaySchedule();
 
-      // Add planned activities to tracking document if not already present
+      // Add or update planned activities in tracking document
       for (const scheduleEntry of todaySchedule) {
-        const existingEntry = tracking.entries.find((e: ITimeEntry) => e.timeSlot === scheduleEntry.timeSlot);
+        // Normalize time slot format to match dashboard format ("to" -> "-")
+        const normalizedTimeSlot = scheduleEntry.timeSlot.replace(' to ', ' - ');
+        
+        const existingEntry = tracking.entries.find((e: ITimeEntry) => e.timeSlot === normalizedTimeSlot);
+        
         if (!existingEntry) {
+          // Add new entry with normalized time slot format
           tracking.entries.push({
-            timeSlot: scheduleEntry.timeSlot,
+            timeSlot: normalizedTimeSlot,
             timestamp: new Date(),
             plannedActivity: scheduleEntry.activity,
             actualActivity: '',
@@ -351,11 +356,16 @@ Great job staying on track! 🎯`;
             mood: '😐',
             notes: ''
           });
+          console.log(`✅ Added new tracking entry: ${normalizedTimeSlot} - ${scheduleEntry.activity}`);
+        } else if (existingEntry.plannedActivity === 'Free time' || !existingEntry.plannedActivity) {
+          // Update existing entry if it has "Free time" or empty planned activity
+          existingEntry.plannedActivity = scheduleEntry.activity;
+          console.log(`🔄 Updated tracking entry: ${normalizedTimeSlot} - ${scheduleEntry.activity}`);
         }
       }
 
       await tracking.save();
-      console.log('📅 Today\'s tracking initialized with planned schedule');
+      console.log('📅 Today\'s tracking initialized/updated with planned schedule');
       
     } catch (error) {
       console.error('❌ Failed to initialize tracking:', error);
