@@ -87,14 +87,15 @@ export class WebDashboardService {
     // Debug timetable endpoint
     this.app.get('/debug/timetable', async (req: Request, res: Response) => {
       try {
-        const timetableData = await this.timetableParser.getTimetable();
+        const timetableResult = await this.timetableParser.parseTimetable();
+        const timetableData = timetableResult.entries;
         res.json({
           debug: 'Timetable parsing debug info',
           version: 'v1.1.1-debug-test',
           timetableEntries: timetableData.length,
           firstFewEntries: timetableData.slice(0, 3),
           lastFewEntries: timetableData.slice(-3),
-          sampleTimeSlots: timetableData.map(entry => entry.timeSlot).slice(0, 10)
+          sampleTimeSlots: timetableData.map((entry: any) => entry.timeSlot).slice(0, 10)
         });
       } catch (error) {
         res.status(500).json({
