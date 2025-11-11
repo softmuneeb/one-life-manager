@@ -132,4 +132,4 @@ if (require.main === module) {
     console.error('💥 Fatal error:', error);
     process.exit(1);
   });
-}
+}// Force restart Tue Nov 11 12:58:23 PKT 2025
