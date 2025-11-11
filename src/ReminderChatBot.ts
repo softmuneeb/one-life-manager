@@ -9,6 +9,7 @@ import { WebDashboardService } from './services/WebDashboardService';
 import { DatabaseService } from './services/DatabaseService';
 import { MemoryMonitorService } from './services/MemoryMonitorService';
 import { MemoryCleanupService } from './services/MemoryCleanupService';
+import { ActivityTracker } from './services/ActivityTracker';
 
 export class ReminderChatBot {
   private configService: ConfigService;
@@ -19,6 +20,7 @@ export class ReminderChatBot {
   private webDashboardService!: WebDashboardService;
   private memoryMonitor!: MemoryMonitorService;
   private memoryCleanup!: MemoryCleanupService;
+  private activityTracker!: ActivityTracker;
   private isRunning = false;
 
   constructor() {
@@ -48,6 +50,13 @@ export class ReminderChatBot {
       this.timetableParser,
       this.whatsappService,
       config.reminderConfig,
+      this.configService.getRecipientPhone()
+    );
+
+    // Initialize activity tracker for 30-minute check-ins
+    this.activityTracker = new ActivityTracker(
+      this.timetableParser,
+      this.whatsappService,
       this.configService.getRecipientPhone()
     );
 
@@ -184,6 +193,9 @@ export class ReminderChatBot {
       // Start scheduler service
       await this.schedulerService.start();
 
+      // Start activity tracker for 30-minute check-ins
+      await this.activityTracker.start();
+
       // Start web dashboard service for health checks and monitoring
       await this.webDashboardService.start();
       const port = parseInt(process.env.PORT || '3001', 10);
@@ -245,11 +257,18 @@ export class ReminderChatBot {
     console.log('🛑 Stopping Reminder ChatBot...');
     
     try {
+      // Stop memory monitoring and cleanup
+      this.memoryMonitor.stopMonitoring();
+      this.memoryCleanup.stopAutoCleanup();
+
       // Stop keep-alive service
       await this.keepAliveService.stop();
 
       // Stop web dashboard service
       await this.webDashboardService.stop();
+
+      // Stop activity tracker
+      await this.activityTracker.stop();
 
       // Stop scheduler service
       await this.schedulerService.stop();

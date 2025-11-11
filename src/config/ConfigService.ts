@@ -114,10 +114,18 @@ export class ConfigService {
     }
 
     // Check WhatsApp config
-    if (!this.config.whatsappConfig.isMock && 
-        !this.config.whatsappConfig.useWhatsAppWeb && 
-        !this.config.whatsappConfig.apiKey) {
-      errors.push('WhatsApp API key is required when not using mock mode or WhatsApp Web');
+    if (!this.config.whatsappConfig.isMock) {
+      if (this.config.whatsappConfig.useBusinessAPI) {
+        // Business API validation
+        if (!this.config.whatsappConfig.accessToken) {
+          errors.push('WhatsApp access token is required when using Business API');
+        }
+        if (!this.config.whatsappConfig.phoneNumberId) {
+          errors.push('WhatsApp phone number ID is required when using Business API');
+        }
+      } else if (!this.config.whatsappConfig.useWhatsAppWeb && !this.config.whatsappConfig.apiKey) {
+        errors.push('WhatsApp API key is required when not using mock mode, WhatsApp Web, or Business API');
+      }
     }
 
     if (!this.config.whatsappConfig.phoneNumber || this.config.whatsappConfig.phoneNumber.trim() === '') {
