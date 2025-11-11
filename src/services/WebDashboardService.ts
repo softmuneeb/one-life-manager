@@ -79,9 +79,30 @@ export class WebDashboardService {
         timestamp: new Date().toISOString(),
         service: 'BarakahTracker Web Dashboard',
         uptime: process.uptime(),
-        version: 'v1.1.0-timetable-fix',
+        version: 'v1.1.1-debug-test',
         commit: process.env.GIT_COMMIT || 'unknown'
       });
+    });
+
+    // Debug timetable endpoint
+    this.app.get('/debug/timetable', async (req: Request, res: Response) => {
+      try {
+        const timetableData = await this.timetableParser.getTimetable();
+        res.json({
+          debug: 'Timetable parsing debug info',
+          version: 'v1.1.1-debug-test',
+          timetableEntries: timetableData.length,
+          firstFewEntries: timetableData.slice(0, 3),
+          lastFewEntries: timetableData.slice(-3),
+          sampleTimeSlots: timetableData.map(entry => entry.timeSlot).slice(0, 10)
+        });
+      } catch (error) {
+        res.status(500).json({
+          error: 'Failed to parse timetable',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          version: 'v1.1.1-debug-test'
+        });
+      }
     });
 
     // Memory usage endpoint
